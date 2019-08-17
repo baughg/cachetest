@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <intrin.h>
+#include <vector>
 
 #define LINE_SIZE   64
 
@@ -13,21 +14,37 @@ uint8_t data[L1_LINES*LINE_SIZE];
 
 int main()
 {
-	volatile uint8_t *addr;
+	volatile uint8_t *addr = NULL;
 	register uint64_t i;
 	unsigned int junk = 0;
 	register uint64_t t1, t2;
+	const uint32_t patternSize = 56 * 56 * 64;
+	memset(reinterpret_cast<void*>(data), 'a', sizeof(data));
 
-	printf("data: %p\n", data);
+	std::vector<uint32_t> skipPattern(patternSize);
 
+	for (uint32_t p = 0; p < patternSize; ++p)
+	{
+		skipPattern[p] = static_cast<uint32_t>((p % 4) == 0);
+	}
+
+	
 	//_mm_clflush(data);
 	printf("accessing 16 bytes in a cache line:\n");
+	uint32_t sum = 0;
 	for (i = 0; i < 16; i++) {
 		t1 = __rdtscp(&junk);
-		addr = &data[i];
+		
+
+		for (uint32_t p = 0; p < patternSize; ++p)
+		{
+			addr = &data[i];
+			sum += (*addr * skipPattern[p]);
+		}
+
 		junk = *addr;
 		t2 = __rdtscp(&junk) - t1;
-		printf("i = %2d, cycles: %ld\n", i, t2);
+		printf("i = %2d, cycles: %ld %u\n", i, t2,sum);
 	}
 
 	return 0;
