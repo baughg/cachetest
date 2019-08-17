@@ -29,8 +29,10 @@ int main()
 	}
 
 	
-	//_mm_clflush(data);
-	printf("accessing 16 bytes in a cache line:\n");
+	_mm_clflush(data);
+	_mm_clflush(&skipPattern[0]);
+	uint32_t* skipPtr = &skipPattern[0];
+
 	uint32_t sum = 0;
 	for (i = 0; i < 16; i++) {
 		t1 = __rdtscp(&junk);
@@ -39,7 +41,7 @@ int main()
 		for (uint32_t p = 0; p < patternSize; ++p)
 		{
 			addr = &data[i];
-			sum += (*addr * skipPattern[p]);
+			sum += (*addr * skipPtr[p]);
 		}
 
 		junk = *addr;
